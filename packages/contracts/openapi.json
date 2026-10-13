@@ -194,6 +194,77 @@
     }
    }
   },
+  "/v1/devices/heartbeat": {
+   "post": {
+    "summary": "Device Heartbeat",
+    "description": "A device reports what it still holds unsent, including zero, after each sync attempt.\n\nWithout this, a device that once reported pending work and then emptied its queue (with nothing\nleft to push) kept showing as 'pending' in the console.",
+    "operationId": "device_heartbeat_v1_devices_heartbeat_post",
+    "parameters": [
+     {
+      "name": "x-device-id",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "X-Device-Id"
+      }
+     },
+     {
+      "name": "authorization",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Authorization"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/HeartbeatIn"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
   "/v1/camps": {
    "get": {
     "summary": "Camps",
@@ -2509,6 +2580,21 @@
     },
     "type": "object",
     "title": "HTTPValidationError"
+   },
+   "HeartbeatIn": {
+    "properties": {
+     "pending_count": {
+      "type": "integer",
+      "maximum": 100000.0,
+      "minimum": 0.0,
+      "title": "Pending Count"
+     }
+    },
+    "type": "object",
+    "required": [
+     "pending_count"
+    ],
+    "title": "HeartbeatIn"
    },
    "OperationIn": {
     "properties": {

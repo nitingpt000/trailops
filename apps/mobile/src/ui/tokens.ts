@@ -1,5 +1,5 @@
 /**
- * Design tokens from trailops-assets/design-system/tokens.ts (proposed values inferred from the
+ * TrailOps design tokens (proposed values inferred from the
  * generated concepts, not official brand tokens).
  */
 export const colors = {

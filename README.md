@@ -96,7 +96,6 @@ The full design is in [`TrailOps-Technical-Documentation.md`](TrailOps-Technical
 ├── services/
 │   └── api/               FastAPI service, Alembic migrations and job worker
 ├── infra/                 Docker Compose, PostgreSQL init and Keycloak realm
-├── trailops-assets/       Design tokens, fonts, icons and imagery
 └── docs/                  Compatibility notes and project records
 ```
 
@@ -243,4 +242,3 @@ Service addresses are set in `apps/mobile/src/app/config.ts`. Plain HTTP is only
 
 - Icons: [Lucide](https://lucide.dev) (ISC licence).
 - Fonts: Inter, Oswald and DM Serif Display (SIL Open Font License).
-- Design tokens, imagery and reference screens from the `trailops-assets` pack.
