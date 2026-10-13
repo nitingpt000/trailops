@@ -1,0 +1,188 @@
+{
+  "realm": "trailops",
+  "enabled": true,
+  "displayName": "TrailOps (demo)",
+  "sslRequired": "external",
+  "accessTokenLifespan": 600,
+  "ssoSessionIdleTimeout": 86400,
+  "ssoSessionMaxLifespan": 604800,
+  "offlineSessionIdleTimeout": 259200,
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "trailops-user",
+        "description": "Coarse role; fine-grained permissions live in the API database"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "trailops-web",
+      "name": "TrailOps console",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:5173/*"
+      ],
+      "webOrigins": [
+        "http://localhost:5173"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "+"
+      },
+      "protocolMappers": [
+        {
+          "name": "api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "trailops-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ],
+      "defaultClientScopes": [
+        "web-origins",
+        "profile",
+        "roles",
+        "email",
+        "basic"
+      ],
+      "optionalClientScopes": [
+        "offline_access"
+      ]
+    },
+    {
+      "clientId": "trailops-mobile",
+      "name": "TrailOps mobile",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "trailops://auth/callback"
+      ],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "+"
+      },
+      "protocolMappers": [
+        {
+          "name": "api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "trailops-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ],
+      "defaultClientScopes": [
+        "web-origins",
+        "profile",
+        "roles",
+        "email",
+        "basic"
+      ],
+      "optionalClientScopes": [
+        "offline_access"
+      ]
+    }
+  ],
+  "users": [
+    {
+      "id": "a17ca442-8c2d-5819-a8ec-135dde307b57",
+      "username": "aditi",
+      "email": "aditi@trailops.example",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Aditi",
+      "lastName": "Rao",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "trailops-demo",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "trailops-user"
+      ]
+    },
+    {
+      "id": "c2283059-a24b-5ca1-80e6-3eb0cbfaec39",
+      "username": "ramesh",
+      "email": "ramesh@trailops.example",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Ramesh",
+      "lastName": "Bisht",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "trailops-demo",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "trailops-user"
+      ]
+    },
+    {
+      "id": "ceb49060-363e-551e-bc6f-acda34f6c90c",
+      "username": "ananya",
+      "email": "ananya@trailops.example",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Ananya",
+      "lastName": "Prakash",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "trailops-demo",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "trailops-user"
+      ]
+    },
+    {
+      "id": "55e39d21-c0cd-5803-9d4d-9979b914a96a",
+      "username": "kabir",
+      "email": "kabir@trailops.example",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Kabir",
+      "lastName": "Sethi",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "trailops-demo",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "trailops-user"
+      ]
+    }
+  ]
+}

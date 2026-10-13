@@ -1,0 +1,7 @@
+packages:
+  - apps/*
+  - packages/*
+  # Mobile uses npm + Metro watchFolders: React Native tooling and pnpm symlinks do not mix well.
+  - "!apps/mobile"
+allowBuilds:
+  esbuild: true

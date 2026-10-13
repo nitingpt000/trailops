@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     database_url: str = "postgresql+asyncpg://trailops:trailops@localhost:55432/trailops"
-    oidc_issuer: str = "http://localhost:8080/realms/trailops"
+    oidc_issuer: str = "http://localhost:8180/realms/trailops"
     # Extra issuers accepted for the same realm, e.g. the emulator-reachable URL. Comma separated.
     oidc_additional_issuers: str = ""
     oidc_audience: str = "trailops-api"

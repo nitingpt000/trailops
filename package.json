@@ -1,0 +1,10 @@
+{
+  "name": "trailops",
+  "private": true,
+  "packageManager": "pnpm@11.9.0",
+  "scripts": {
+    "contracts": "pnpm --filter @trailops/contracts generate",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck"
+  }
+}
