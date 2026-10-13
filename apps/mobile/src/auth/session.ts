@@ -33,15 +33,27 @@ export class AuthExpiredError extends Error {}
 
 let memory: {accessToken: string; expiresAt: number; accountId: string} | null = null;
 
+function base64UrlDecode(input: string): string {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  const s = input.replace(/-/g, '+').replace(/_/g, '/').replace(/=+$/, '');
+  const bytes: number[] = [];
+  let buffer = 0;
+  let bits = 0;
+  for (const ch of s) {
+    buffer = (buffer << 6) | alphabet.indexOf(ch);
+    bits += 6;
+    if (bits >= 8) {
+      bits -= 8;
+      bytes.push((buffer >> bits) & 0xff);
+    }
+  }
+  return decodeURIComponent(bytes.map(b => '%' + b.toString(16).padStart(2, '0')).join(''));
+}
+
 function decodeSub(jwt: string): {sub: string; name?: string; preferred_username?: string} {
   // Not a verification: only reads the subject of a token we just received from the issuer. The API
   // validates every token it receives.
-  const part = jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-  const json = decodeURIComponent(
-    Array.from(globalThis.atob(part.padEnd(part.length + ((4 - (part.length % 4)) % 4), '=')))
-      .map(c => '%' + c.charCodeAt(0).toString(16).padStart(2, '0')).join(''),
-  );
-  return JSON.parse(json);
+  return JSON.parse(base64UrlDecode(jwt.split('.')[1]));
 }
 
 export async function readAccount(): Promise<AccountMarker | null> {

@@ -7,10 +7,10 @@ import {PROJECTIONS} from './schema';
  */
 export class ProjectionRecord<T = Record<string, unknown>> extends Model {
   get serverId(): string {
-    return this._raw.server_id as unknown as string;
+    return (this._raw as unknown as {server_id: string}).server_id;
   }
   get version(): number {
-    return this._raw.version as unknown as number;
+    return (this._raw as unknown as {version: number}).version;
   }
   get data(): T {
     // Parsed lazily and cached per raw json string.

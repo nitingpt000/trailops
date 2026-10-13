@@ -71,7 +71,8 @@ export function canonicalJson(value: unknown): string {
 
 export function uuid(): string {
   const b = new Uint8Array(16);
-  crypto.getRandomValues(b); // polyfilled by react-native-get-random-values
+  // Polyfilled by react-native-get-random-values (imported first in index.js).
+  (globalThis as unknown as {crypto: {getRandomValues: (a: Uint8Array) => void}}).crypto.getRandomValues(b);
   b[6] = (b[6] & 0x0f) | 0x40;
   b[8] = (b[8] & 0x3f) | 0x80;
   const h = Array.from(b, x => x.toString(16).padStart(2, '0')).join('');

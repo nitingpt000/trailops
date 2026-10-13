@@ -95,7 +95,7 @@ export function Screen({
     </>
   );
   return (
-    <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
+    <SafeAreaView style={styles.screen} edges={['top', 'left', 'right', 'bottom']}>
       {onBack || right ? (
         <View style={styles.backBar}>
           {onBack ? (

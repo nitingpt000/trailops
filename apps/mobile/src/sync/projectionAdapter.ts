@@ -34,7 +34,15 @@ export async function applyEvents(db: Database, events: Incoming[]): Promise<num
   }
   const ops: Model[] = [];
   let applied = 0;
-  for (const [entity, list] of byEntity) {
+  for (const [entity, all] of byEntity) {
+    // A page may carry several events for one entity; only the newest matters, and WatermelonDB
+    // cannot prepare two updates of the same record in one batch.
+    const newest = new Map<string, Incoming>();
+    for (const e of all) {
+      const prev = newest.get(e.id);
+      if (!prev || e.version >= prev.version) newest.set(e.id, e);
+    }
+    const list = [...newest.values()];
     const table = PROJECTIONS[entity].table;
     const ids = [...new Set(list.map(e => e.id))];
     const existing = new Map(

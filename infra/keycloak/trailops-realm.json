@@ -124,7 +124,8 @@
         }
       ],
       "realmRoles": [
-        "trailops-user"
+        "trailops-user",
+        "offline_access"
       ]
     },
     {
@@ -143,7 +144,8 @@
         }
       ],
       "realmRoles": [
-        "trailops-user"
+        "trailops-user",
+        "offline_access"
       ]
     },
     {
@@ -162,7 +164,8 @@
         }
       ],
       "realmRoles": [
-        "trailops-user"
+        "trailops-user",
+        "offline_access"
       ]
     },
     {
@@ -181,7 +184,8 @@
         }
       ],
       "realmRoles": [
-        "trailops-user"
+        "trailops-user",
+        "offline_access"
       ]
     }
   ]
