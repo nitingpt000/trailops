@@ -110,6 +110,20 @@ export function useMeta(): SyncMetaRow | undefined {
     ['cursor', 'last_success_at', 'last_error', 'last_pull_at']);
 }
 
+/**
+ * Operations needing a person's attention: rejected/conflicted commands and blocked dependents.
+ * A conflicted command whose server conflict has been resolved is settled history, not an exception.
+ */
+export function useNeedsReview(): QueueRow[] {
+  const failed = useQueue(['CONFLICT', 'REJECTED', 'DEPENDENCY_WAIT']);
+  const conflicts = useProjection<ConflictP>('conflicts');
+  return useMemo(() => {
+    const resolved = new Set((conflicts ?? []).filter(c => c.state === 'RESOLVED').map(c => c.operation_id));
+    return (failed ?? []).filter(q =>
+      q.state === 'DEPENDENCY_WAIT' ? q.error_code === 'BLOCKED_BY_DEPENDENCY' : !resolved.has(q.operation_id));
+  }, [failed, conflicts]);
+}
+
 /** Pending commands keyed by aggregate id, for provisional overlays. */
 export function usePendingByAggregate(): Map<string, QueueRow[]> {
   const pending = usePending();

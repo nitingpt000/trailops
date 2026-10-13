@@ -9,7 +9,7 @@ import {SYNC_LABEL} from '@trailops/contracts';
 import type {ScreenProps} from '../../app/navigation';
 import {useSession} from '../../app/session';
 import {triggerSync} from '../../app/startup';
-import {useAttachmentQueue, useMeta, useOpenConflicts, useQueue} from '../../database/hooks';
+import {useAttachmentQueue, useMeta, useNeedsReview, useOpenConflicts, useQueue} from '../../database/hooks';
 import type {QueueRow} from '../../database/models';
 import {useSync} from '../../sync/coordinator';
 import {Banner, Button, Card, Divider, KeyValue, Pill, Row, Screen} from '../../ui/components';
@@ -42,8 +42,8 @@ export function SyncCentreScreen({navigation}: ScreenProps<'SyncCentre'>) {
   const atts = useAttachmentQueue() ?? [];
   const meta = useMeta();
   const conflicts = useOpenConflicts() ?? [];
-  const pending = queue.filter(q => !['ACCEPTED', 'CONFLICT', 'REJECTED'].includes(q.state));
-  const review = queue.filter(q => ['CONFLICT', 'REJECTED'].includes(q.state) || q.error_code === 'BLOCKED_BY_DEPENDENCY');
+  const pending = queue.filter(q => !['ACCEPTED', 'CONFLICT', 'REJECTED'].includes(q.state) && q.error_code !== 'BLOCKED_BY_DEPENDENCY');
+  const review = useNeedsReview();
   const done = queue.filter(q => q.state === 'ACCEPTED').slice(0, 10);
   const photoPending = atts.filter(a => !['VERIFIED', 'REJECTED'].includes(a.state));
 

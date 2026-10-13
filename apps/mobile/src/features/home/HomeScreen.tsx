@@ -10,7 +10,7 @@ import {CircleAlert, MapPin, PackageCheck, ScanLine, Users, ClipboardCheck, User
 import {useSession} from '../../app/session';
 import type {RootStack} from '../../app/navigation';
 import {
-  useCampBatches, useCampEquipment, useCampLocations, useMeta, useOpenConflicts, usePending, useProjection, useQueue,
+  useCampBatches, useCampEquipment, useCampLocations, useMeta, useNeedsReview, useOpenConflicts, usePending, useProjection,
 } from '../../database/hooks';
 import {Q} from '@nozbe/watermelondb';
 import type {AllocationP, BatchMemberP, TransferP} from '@trailops/contracts';
@@ -36,7 +36,7 @@ export function HomeScreen() {
   const items = useCampEquipment(campId);
   const locations = useCampLocations(campId);
   const conflicts = useOpenConflicts();
-  const failed = useQueue(['CONFLICT', 'REJECTED']);
+  const review = useNeedsReview();
   const today = todayIso();
   const activeBatchIds = (batches ?? []).filter(b => b.active && b.end_date >= today).map(b => b.id);
   const members = useProjection<BatchMemberP>('batch_members', Q.where('batch_id', Q.oneOf(activeBatchIds)));
@@ -57,7 +57,9 @@ export function HomeScreen() {
     return {waiting, toReceive, dueBack, quarantined};
   }, [allocations, pending, members, locations, incoming, items, today]);
 
-  const exceptions = (conflicts?.length ?? 0) + (failed?.length ?? 0);
+  const reviewOps = new Set(review.map(r => r.operation_id));
+  // Open server conflicts raised by this device's operations are already counted via their operation.
+  const exceptions = review.length + (conflicts ?? []).filter(c => !reviewOps.has(c.operation_id)).length;
 
   return (
     <Screen>

@@ -100,11 +100,15 @@ export function ReturnInspectionScreen({route, navigation}: ScreenProps<'ReturnI
   const allPhotos = Object.values(values.photos).flat();
   const save = async () => {
     setSaveError(null);
-    const pruned = pruneHidden(schema, answers);
-    // Photos belonging to hidden photo fields are not submitted.
-    const visiblePhotoFields = Object.keys(pruned).filter(k => schema.fields.find(f => f.id === k)?.type === 'photo');
-    const photos = visiblePhotoFields.flatMap(k => values.photos[k] ?? []);
-    for (const k of visiblePhotoFields) pruned[k] = (values.photos[k] ?? []).map(p => p.attachment_id);
+    // Photo answers are the attachment ids of captured files; hidden fields (and their photos) are pruned.
+    const withPhotos: Record<string, unknown> = {...answers};
+    for (const f of schema.fields) {
+      if (f.type === 'photo') withPhotos[f.id] = (values.photos[f.id] ?? []).map(p => p.attachment_id);
+    }
+    const pruned = pruneHidden(schema, withPhotos);
+    const photos = schema.fields
+      .filter(f => f.type === 'photo' && f.id in pruned)
+      .flatMap(f => values.photos[f.id] ?? []);
     const errs = validateAnswers(schema, pruned, new Set(photos.map(p => p.attachment_id)));
     if (pruned.condition === 'NEEDS_REPAIR' && photos.length === 0) errs.photos = 'Add at least one photo of the damage';
     setErrors(errs);
