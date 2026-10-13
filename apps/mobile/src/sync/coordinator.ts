@@ -15,7 +15,7 @@ import {useSession} from '../app/session';
 import type {AttachmentRow, LocalConflictRow, LocalRecord, QueueRow, SyncMetaRow} from '../database/models';
 import {HttpError, NetworkError, api, type ApiContext} from './api';
 import {applyEvents, changeToIncoming, replaceSnapshot} from './projectionAdapter';
-import {queueTable} from './queue';
+import {pendingQuery, queueTable} from './queue';
 import {uploadReadyAttachments} from './attachments';
 import {refreshOrgLocations} from './orgLocations';
 
@@ -113,6 +113,9 @@ async function doSync(db: Database, _reason: string): Promise<void> {
       await uploadReadyAttachments(db, ctx);
     }
     await db.write(() => meta.update(m => (m as LocalRecord<SyncMetaRow>).set({last_success_at: Date.now(), last_error: null})));
+    // Tell the console what is still held here, including zero (spec §21: only reported state is shown).
+    const remaining = await pendingQuery(db, marker.accountId).fetchCount();
+    await api(ctx, 'POST', '/v1/devices/heartbeat', {pending_count: remaining}).catch(() => undefined);
   } catch (e) {
     const msg = describe(e);
     if (e instanceof OfflineError || e instanceof NetworkError) s.set({online: false});

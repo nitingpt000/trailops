@@ -13,7 +13,7 @@ from sqlalchemy.orm import aliased
 
 from app.core.auth import Principal, current_principal
 from app.core.db import get_session
-from app.core.errors import Forbidden, NotFound
+from app.core.errors import Forbidden, InvalidInput, NotFound
 from app.core.projections import ProjectionContext
 from app.core.settings import get_settings
 from app.models import (
@@ -123,6 +123,32 @@ async def register_device(
         if not dev.enabled:
             raise Forbidden("This device has been disabled.", "DEVICE_DISABLED")
         return {"device_id": str(dev.id), "enabled": dev.enabled}
+
+
+class HeartbeatIn(BaseModel):
+    pending_count: int = Field(ge=0, le=100_000)
+
+
+@router.post("/devices/heartbeat")
+async def device_heartbeat(
+    body: HeartbeatIn,
+    principal: Principal = Depends(current_principal),
+    session: AsyncSession = Depends(get_session),
+):
+    """A device reports what it still holds unsent, including zero, after each sync attempt.
+
+    Without this, a device that once reported pending work and then emptied its queue (with nothing
+    left to push) kept showing as 'pending' in the console.
+    """
+    if principal.device_id is None:
+        raise InvalidInput("DEVICE_REQUIRED", "Send X-Device-Id for a registered device.")
+    async with session.begin():
+        dev = await session.get(Device, principal.device_id)
+        now = datetime.now(UTC)
+        dev.last_seen_at = now
+        dev.reported_pending = body.pending_count
+        dev.reported_pending_at = now
+    return {"device_id": str(dev.id), "reported_pending": body.pending_count}
 
 
 @router.get("/devices")

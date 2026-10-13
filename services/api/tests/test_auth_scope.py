@@ -111,3 +111,20 @@ async def test_equipment_update_cannot_patch_status_and_detects_stale_version(ap
     assert ok["status"] == "ACCEPTED"
     stale = await api.cmd("ananya", "EQUIPMENT_UPDATE", item, {"notes": "Old view"}, expected_version=1)
     assert stale["status"] == "CONFLICT" and stale["code"] == "VERSION_CONFLICT"
+
+
+async def test_device_heartbeat_reports_zero_pending(api):
+    dev = await api.device("aditi")
+    r = await api.c.post("/v1/sync/commands", headers=api.headers("aditi", True), json={
+        "protocol_version": 1, "device_id": dev, "pending_count": 3,
+        "operations": [{"operation_id": str(uuid.uuid4()), "type": "ISSUE_GEAR",
+                        "aggregate_id": str(sid("item:JKT-018")), "payload": {}}]})
+    assert r.status_code == 200
+    devices = (await api.get("ananya", "/v1/devices")).json()["items"]
+    assert next(d for d in devices if d["id"] == dev)["reported_pending"] == 3
+    hb = await api.c.post("/v1/devices/heartbeat", headers=api.headers("aditi", True), json={"pending_count": 0})
+    assert hb.status_code == 200
+    devices = (await api.get("ananya", "/v1/devices")).json()["items"]
+    assert next(d for d in devices if d["id"] == dev)["reported_pending"] == 0
+    no_device = await api.c.post("/v1/devices/heartbeat", headers=api.headers("aditi"), json={"pending_count": 0})
+    assert no_device.status_code == 422
