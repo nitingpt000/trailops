@@ -1,45 +1,60 @@
 # Build progress
 
-Tracks implementation against `TrailOps-Technical-Documentation.md` §25 milestones. Only states what
-has actually been built and run on this machine.
+Tracks implementation against `TrailOps-Technical-Documentation.md` §25 milestones. States only what
+was actually built and run on the build machine (Windows 11, Android emulator API 36).
 
 | Milestone | Status | Evidence |
 | --- | --- | --- |
-| M0 compatibility spike | Not started | Toolchain present: Android SDK 35/36, JDK (Android Studio JBR), Node 24, pnpm 11, Docker 28, Python 3.13 |
-| M1 foundations | Backend done | Schema + reviewed Alembic migration (up/down tested), scoped reads, deterministic demo seed |
-| M2 vertical issue slice | Backend done | ISSUE_GEAR, durable receipts, idempotent replay |
-| M3 sync correctness | Backend done | Commit-ordered change stream, signed scope-bound cursors, tombstones, rebootstrap on scope change |
-| M4 return/repair | Backend done | Versioned inspection, evidence placeholders + verification, approval/work/release |
-| M5 handovers | Backend done | All-or-nothing dispatch, per-tag receipt, missing/extra custody claims, dependency wait |
-| M6 console/forms | Backend done; console UI not started | Form engine + draft/publish commands |
-| M7 reviewer package | Not started | |
+| M0 compatibility spike | Done (Android) | `docs/compatibility.md`; DB restart durability, keychain, native hashing, camera |
+| M1 foundations | Done | Reviewed Alembic migration (up/down/up), Keycloak realm, deterministic seed, scoped reads |
+| M2 vertical issue slice | Done | Offline issue on emulator survives force-close, confirms once |
+| M3 sync correctness | Done | 77 API tests incl. lost responses, concurrent devices, tombstones, scope change |
+| M4 return/repair | Done | Camera photo → upload → server verification → approval on phone |
+| M5 handovers | Done | Five dispatched / four received on emulator; missing item blocked at origin |
+| M6 console/forms | Done | Console flows exercised in the browser; v4 published while v3 drafts stay valid |
+| M7 reviewer package | Partly | README, CI workflow, release APK (debug-signed, demo only); no demo video |
 
-## Backend test results (real PostgreSQL 17)
+## Test results
 
-`uv run pytest` in `services/api`: 76 passed. Covers spec §27 IDs AUTH-01..04, EQ-01, ISSUE-01..03,
-SYNC-01, 02, 05, 06, 07, 09, 10, RET-01..02, REPAIR-01, TR-01..03, FORM-01..03, PHOTO-01..02,
-CONFLICT-01..02, plus shared form-fixture conformance.
+| Suite | Result |
+| --- | --- |
+| API (`uv run pytest`, PostgreSQL 17) | 87 passed |
+| Web console (`pnpm --filter web test`) | 23 passed; typecheck + production build OK |
+| Contracts (`pnpm --filter @trailops/contracts test`) | 28 passed |
+| Mobile (`npm test` in apps/mobile) | 11 passed |
 
-Not yet covered: SYNC-03/04/08 and MIG-01 (client-side, need the mobile app), PERF-01 (device).
+## Verified on the emulator (manual, adb-driven)
 
-## Bugs found by tests
+Spec §28 steps 1–9: PKCE sign-in, offline issue, durable restart, second-actor conflict, replacement
+resolution, damaged return with real photo, evidence verification, supervisor approval with real
+evidence, per-tag dispatch/receipt with discrepancy. Release APK upgrade in place keeps account + DB.
 
-- Sync cursor / upload-slot tokens were split on a `.` byte, which the binary MAC can contain;
-  ~6% of cursors were rejected. Fixed with a fixed-length MAC suffix plus a regression test.
+## Bugs found and fixed while verifying
+
+| Where | Bug | Fix |
+| --- | --- | --- |
+| API cursors / upload slots | Token split on a `.` byte that the binary MAC can contain (~6% rejected) | Fixed-length MAC suffix + regression test |
+| API evidence | EXIF strip dropped orientation → photos rotated | `exif_transpose` before re-encode + test |
+| API worker | Compared host clock to DB clock; jobs looked "not yet available" | Database time only |
+| Mobile adapter | Two events for one entity in a pull page → WatermelonDB batch error | Collapse to newest per entity + test |
+| Mobile return | Photo answers pruned before validation → "add a photo" with a photo attached | Merge photo ids before pruning |
+| Mobile auth | Browser SSO cookie silently re-used previous user on a shared phone | `prompt=login` |
+| Mobile review | Pack's stock zip image looked like evidence | Show real verified evidence via short-lived URLs |
+| Keycloak realm | Explicit realm roles dropped `offline_access` | Added to realm export |
+| API handovers | Extra-items-only discrepancy could never reconcile | Shared reconcile check + tests |
+| API conflicts read | Receiving camp could not see missing-item claims | Scope by destination too + test |
+| API commands | No version checks on discrepancy/claim/membership edits | Optimistic checks + tests |
 
 ## Decisions taken where the spec left room
 
 - `org_id` is the single column naming convention.
-- `inspections.evidence_state` adds `NOT_REQUIRED` for returns with no photos, so "verified" is never
-  claimed for evidence that does not exist.
-- UNUSABLE returns create a `DISPOSITION` request; approving it retires the item, denying needs an
-  explicit disposition.
-- A rejected ISSUE_GEAR always records a conflict and a custody claim (the operator may already have
-  handed the item over). The claim blocks release/issue until reconciled.
-- Trek-leader "assigned batches only" is not yet enforced beyond camp scope (no batch-leader table).
+- `inspections.evidence_state` adds `NOT_REQUIRED` so "verified" is never claimed for absent evidence.
+- UNUSABLE returns create a `DISPOSITION` request; approving it retires the item.
+- A rejected ISSUE_GEAR always records a conflict and a custody claim; the claim blocks the item until reconciled.
+- Mobile on React Native 0.81 legacy architecture for WatermelonDB 0.28 (see compatibility record).
 
-## Next
+## Not done / open
 
-1. Web console (React + Vite): equipment, approvals/repair lifecycle, handovers, conflicts, audit, form editor.
-2. React Native CLI app with WatermelonDB, command queue, attachment queue, QR scanning.
-3. Keycloak realm export with the four demo users; end-to-end sign-in.
+- iOS build; physical-device test; Detox/Maestro automation; SYNC-03/04/08 and MIG-01 as automated device tests.
+- Trek-leader batch assignment; integration adapters (interfaces only in spec); push notifications.
+- Demo video.

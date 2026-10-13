@@ -102,7 +102,8 @@ exactly. A standalone release APK (JS bundled) is built with `./gradlew assemble
 
 | Suite | Command | Result |
 | --- | --- | --- |
-| API integration (real PostgreSQL) | `uv --directory services/api run pytest` | 77 passed |
+| API integration (real PostgreSQL) | `uv --directory services/api run pytest` | 87 passed |
+| Web console (command helper, form-editor reducer, permissions) | `pnpm --filter web test` | 23 passed |
 | Shared contracts (form engine fixtures, QR, retry) | `pnpm --filter @trailops/contracts test` | 28 passed |
 | Mobile unit (queue, projection adapter, receipts, hashing) | `npm --prefix apps/mobile test` | 11 passed |
 
@@ -122,8 +123,10 @@ two-device race on the same jacket and a concurrent commit/pull ordering test.
 8. Supervisor (Ananya) reviews the real evidence on the phone and approves (online-only command). ✔
 9. Dispatch five tagged items Lohajung → Sankri; receive four, one missing → discrepancy, missing item
    stays blocked at origin. ✔
-10. Publish inspection v4 while an old v3 draft stays valid — covered by API test FORM-01; console flow
-    see `docs/build-progress.md`.
+10. Publish inspection v4 from the console form editor (as `kabir`; supervisors draft, administrators
+    publish) while an old v3 draft stays valid (API test FORM-01). ✔
+11. Complete the repair lifecycle in the console (start → complete → release inspection); the audit trail
+    attributes every step across phone and console. ✔
 
 ## Known limitations (honest list)
 
@@ -131,6 +134,9 @@ two-device race on the same jacket and a concurrent commit/pull ordering test.
 - React Native 0.81 on the **legacy architecture**, chosen for WatermelonDB 0.28 compatibility.
 - MinIO images were not pullable; evidence uses the API's local signed-slot storage. S3 path untested.
 - Trek-leader "assigned batches only" is enforced at camp scope only.
+- Form publication is administrator-only by default (the spec's "optional permission" for supervisors is an
+  org-level grant, not a camp-level one).
+- Console tests cover logic only (no component/E2E tests); ESLint is not configured.
 - No automated device-level tests (Detox/Maestro); device flows were exercised manually via adb.
 - Retention/cleanup jobs, push notifications and integrations are interfaces/plans, not implemented.
 - The 72-hour offline allowance, grace periods and approval rules are proposals needing stakeholder input.
