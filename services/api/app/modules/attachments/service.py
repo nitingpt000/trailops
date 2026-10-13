@@ -15,7 +15,7 @@ import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageOps
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -212,11 +212,13 @@ def inspect_content(
             img.load()
             if img.width > MAX_DIMENSION or img.height > MAX_DIMENSION:
                 return "DIMENSIONS_TOO_LARGE", None, None
-            # Re-encode without metadata: drops EXIF/GPS (spec §20).
+            # Re-encode without metadata: drops EXIF/GPS (spec §20). Orientation is applied to the pixels
+            # first, otherwise phone photos come out rotated once the EXIF tag is gone.
+            upright = ImageOps.exif_transpose(img)
             out = io.BytesIO()
-            clean = img.convert("RGB") if att.mime == "image/jpeg" else img
+            clean = upright.convert("RGB") if att.mime == "image/jpeg" else upright
             clean.save(out, format="JPEG" if att.mime == "image/jpeg" else "PNG", quality=90)
-            return None, out.getvalue(), (img.width, img.height)
+            return None, out.getvalue(), (upright.width, upright.height)
     except Exception:
         return "UNDECODABLE", None, None
 

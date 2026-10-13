@@ -229,3 +229,25 @@ async def test_upload_slot_token_cannot_be_forged(api):
     r, photo, data = await _damaged_return(api)
     bad = await api.c.put(f"/v1/attachments/{photo['attachment_id']}/content?token=abc", content=data)
     assert bad.status_code == 403
+
+
+async def test_evidence_orientation_applied_and_exif_stripped(api):
+    import io
+
+    from PIL import Image
+
+    img = Image.new("RGB", (80, 40), (10, 200, 10))
+    exif = Image.Exif()
+    exif[0x0112] = 6  # rotate 90 CW on display
+    exif[0x8825] = {2: (28.0, 0.0, 0.0)}  # GPS block that must be removed
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", exif=exif)
+    data = buf.getvalue()
+    r, photo, _ = await _damaged_return(api, data)
+    done = await _upload(api, "aditi", photo["attachment_id"], data)
+    assert done["state"] == "VERIFIED"
+    dl = (await api.get("ananya", f"/v1/attachments/{photo['attachment_id']}/download")).json()
+    stored = (await api.c.get(dl["url"].replace("http://localhost:8000", ""))).content
+    out = Image.open(io.BytesIO(stored))
+    assert out.size == (40, 80)  # upright
+    assert not out.getexif()

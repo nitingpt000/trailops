@@ -77,7 +77,8 @@ export async function installationId(): Promise<string> {
 }
 
 export async function signIn(): Promise<AccountMarker> {
-  const result = await authorize(AUTH_CONFIG);
+  // Field phones are shared: always show the login form instead of reusing a browser SSO session.
+  const result = await authorize({...AUTH_CONFIG, additionalParameters: {prompt: 'login'}});
   const claims = decodeSub(result.accessToken);
   const previous = await readAccount();
   memory = {

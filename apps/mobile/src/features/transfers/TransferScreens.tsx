@@ -6,7 +6,7 @@ import React, {useEffect, useMemo, useState} from 'react';
 import {Pressable, Text, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
-import {ChevronDown, ChevronRight, CircleAlert, CircleCheck, MapPin, Truck} from 'lucide-react-native';
+import {Check, ChevronDown, ChevronRight, CircleAlert, CircleCheck, MapPin, Truck} from 'lucide-react-native';
 import {Q} from '@nozbe/watermelondb';
 import {SYNC_LABEL, TRANSFER_LABEL, type EquipmentP, type TransferP} from '@trailops/contracts';
 import type {RootStack, ScreenProps} from '../../app/navigation';
@@ -32,7 +32,9 @@ export function TransfersScreen() {
   const allLocs = useAllLocations();
   const pending = useQueue(['QUEUED', 'SENDING', 'RETRY_WAIT', 'DEPENDENCY_WAIT', 'AUTH_BLOCKED']);
   const locIds = new Set((campLocs ?? []).map(l => l.id));
-  const label = (id: string) => allLocs?.find(l => l.id === id)?.label ?? 'Other camp';
+  const orgLocs = useCachedOrgLocations();
+  const label = (id: string) =>
+    allLocs?.find(l => l.id === id)?.label ?? orgLocs?.find(l => l.id === id)?.label ?? 'another camp';
   const pendingReceipts = new Set((pending ?? []).filter(p => p.type === 'RECEIVE_TRANSFER').map(p => p.aggregate_id));
   const pendingDispatches = (pending ?? []).filter(p => p.type === 'DISPATCH_TRANSFER');
   const incoming = (transfers ?? []).filter(t => locIds.has(t.to_location_id)).sort((a, b) => b.dispatched_at.localeCompare(a.dispatched_at));
@@ -92,7 +94,10 @@ function TagChecklist({views, selected, toggle}: {views: ItemView[]; selected: S
               <Pressable key={v.item.id} testID={`tag-${v.item.tag}`} accessibilityRole="checkbox" accessibilityState={{checked: selected.has(v.item.id)}}
                 onPress={() => toggle(v.item.id)}
                 style={{flexDirection: 'row', alignItems: 'center', gap: space.m, paddingHorizontal: space.m, minHeight: 48, borderTopWidth: 1, borderTopColor: colors.divider}}>
-                <View style={{width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: colors.text, backgroundColor: selected.has(v.item.id) ? colors.primary : 'transparent'}} />
+                <View style={{width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: colors.text, alignItems: 'center', justifyContent: 'center',
+                  backgroundColor: selected.has(v.item.id) ? colors.primary : 'transparent'}}>
+                  {selected.has(v.item.id) ? <Check color={colors.text} size={16} strokeWidth={3} /> : null}
+                </View>
                 <Text style={type.body}>{v.item.tag}{v.item.size ? ` · ${v.item.size}` : ''}</Text>
               </Pressable>
             )) : null}
@@ -104,6 +109,20 @@ function TagChecklist({views, selected, toggle}: {views: ItemView[]; selected: S
 }
 
 interface OrgLocation {id: string; label: string; camp_id: string; camp_name: string}
+
+const ORG_LOCATIONS_KEY = 'cache:org-locations';
+
+/** Labels for locations outside this camp's scope, cached from the last online lookup. */
+function useCachedOrgLocations(): OrgLocation[] | undefined {
+  const db = useDb();
+  const [locs, setLocs] = useState<OrgLocation[]>();
+  useEffect(() => {
+    const sub = db.get<LocalRecord<DraftRow>>('drafts').query(Q.where('screen_key', ORG_LOCATIONS_KEY)).observe()
+      .subscribe(rows => setLocs(rows[0] ? JSON.parse(rows[0].r.values_json) : undefined));
+    return () => sub.unsubscribe();
+  }, [db]);
+  return locs;
+}
 
 export function TransferDispatchScreen({navigation}: ScreenProps<'TransferDispatch'>) {
   const db = useDb();
@@ -121,7 +140,7 @@ export function TransferDispatchScreen({navigation}: ScreenProps<'TransferDispat
 
   // Destinations outside this camp are not in the scoped download; fetch when online and cache locally.
   useEffect(() => {
-    const cacheKey = 'cache:org-locations';
+    const cacheKey = ORG_LOCATIONS_KEY;
     (async () => {
       const rows = await db.get<LocalRecord<DraftRow>>('drafts').query(Q.where('screen_key', cacheKey)).fetch();
       if (rows[0]) setOrgLocs(JSON.parse(rows[0].r.values_json));

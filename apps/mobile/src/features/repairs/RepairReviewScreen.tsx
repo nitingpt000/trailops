@@ -5,11 +5,12 @@
 import React, {useState} from 'react';
 import {Image, Text, View} from 'react-native';
 import {Calendar, Camera, FileText, User, Wrench} from 'lucide-react-native';
-import {REPAIR_LABEL, type Receipt, type RepairP} from '@trailops/contracts';
+import {REPAIR_LABEL, type AttachmentP, type Receipt, type RepairP} from '@trailops/contracts';
+import {Q} from '@nozbe/watermelondb';
 import type {ScreenProps} from '../../app/navigation';
 import {can, useSession} from '../../app/session';
 import {triggerSync} from '../../app/startup';
-import {useItem, useItemInspections, useRepairsByState} from '../../database/hooks';
+import {useItem, useItemInspections, useProjection, useRepairsByState} from '../../database/hooks';
 import {useSync} from '../../sync/coordinator';
 import {HttpError, NetworkError, api} from '../../sync/api';
 import {uuid} from '../../native/sha256';
@@ -17,6 +18,32 @@ import {Banner, Button, Card, Divider, Empty, Field, Input, ItemThumb, KeyValue,
 import {colors, space, type} from '../../ui/tokens';
 import {formatDay} from '../../ui/format';
 import {itemTitle, useItemViews} from '../equipment/model';
+
+/** Shows the actual verified evidence through short-lived authorized URLs (spec �20). */
+function EvidencePhotos({inspectionId}: {inspectionId: string}) {
+  const account = useSession(s => s.account);
+  const atts = useProjection<AttachmentP>('attachments', Q.where('inspection_id', inspectionId));
+  const [urls, setUrls] = useState<Record<string, string>>({});
+  React.useEffect(() => {
+    (atts ?? []).filter(a => a.state === 'VERIFIED' && !urls[a.id]).forEach(a => {
+      api<{url: string}>({accountId: account!.accountId}, 'GET', `/v1/attachments/${a.id}/download`)
+        .then(r => setUrls(u => ({...u, [a.id]: r.url})))
+        .catch(() => undefined); // offline: photos are simply not shown
+    });
+  }, [atts, account, urls]);
+  if (!atts?.length) return null;
+  return (
+    <View style={{flexDirection: 'row', gap: space.s, flexWrap: 'wrap'}}>
+      {atts.map(a => urls[a.id] ? (
+        <Image key={a.id} source={{uri: urls[a.id]}} style={{width: 150, height: 112, borderRadius: 8}} accessibilityLabel="Inspection evidence photo" />
+      ) : (
+        <View key={a.id} style={{width: 150, height: 112, borderRadius: 8, backgroundColor: colors.neutralBg, alignItems: 'center', justifyContent: 'center', padding: 8}}>
+          <Text style={[type.small, {textAlign: 'center'}]}>{a.state === 'VERIFIED' ? 'Photo available online' : `Photo ${a.state.toLowerCase()}`}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
 
 function RepairDetail({repair, onDone}: {repair: RepairP; onDone: () => void}) {
   const {account, me} = useSession();
@@ -57,10 +84,7 @@ function RepairDetail({repair, onDone}: {repair: RepairP; onDone: () => void}) {
           <Text style={type.small}>{REPAIR_LABEL[repair.state]}{repair.kind === 'DISPOSITION' ? ' · retirement decision' : ''}</Text>
         </View>
       </Card>
-      {insp?.issue_type === 'BROKEN_ZIP' ? (
-        <Image source={require('../../../assets/images/damaged-zip-detail.png')} style={{width: '100%', height: 120, borderRadius: 12}}
-          resizeMode="cover" accessibilityLabel="Illustrative example of a broken zip (not this item's evidence)" />
-      ) : null}
+      {insp ? <EvidencePhotos inspectionId={insp.id} /> : null}
       <View>
         <KeyValue icon={<Calendar color={colors.text} size={18} />} k="Reported on" v={formatDay(insp?.submitted_at ?? repair.created_at)} />
         <KeyValue icon={<Wrench color={colors.text} size={18} />} k="Issue type" v={(insp?.issue_type ?? '—').replace(/_/g, ' ').toLowerCase()} />
