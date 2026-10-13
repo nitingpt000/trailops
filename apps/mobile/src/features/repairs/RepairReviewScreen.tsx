@@ -19,7 +19,7 @@ import {colors, space, type} from '../../ui/tokens';
 import {formatDay} from '../../ui/format';
 import {itemTitle, useItemViews} from '../equipment/model';
 
-/** Shows the actual verified evidence through short-lived authorized URLs (spec ง20). */
+/** Shows the actual verified evidence through short-lived authorized URLs (spec ยง20). */
 function EvidencePhotos({inspectionId}: {inspectionId: string}) {
   const account = useSession(s => s.account);
   const atts = useProjection<AttachmentP>('attachments', Q.where('inspection_id', inspectionId));

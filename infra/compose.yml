@@ -49,7 +49,7 @@ services:
     profiles: ["app"]
   worker:
     build: ../services/api
-    command: ["python", "-m", "app.jobs.worker"]
+    command: ["python", "-m", "app.jobs.worker", "--scheduler"]
     env_file: ../services/api/.env.compose
     depends_on:
       postgres: {condition: service_healthy}

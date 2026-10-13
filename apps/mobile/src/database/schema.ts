@@ -72,7 +72,7 @@ export const schema = appSchema({
         so('camp_id'), so('last_error'),
       ],
     }),
-    // Deletion tombstones keep stale receipts/events from resurrecting removed entities (spec ง18).
+    // Deletion tombstones keep stale receipts/events from resurrecting removed entities (spec ยง18).
     tableSchema({name: 'tombstones', columns: [s('entity'), s('server_id', true), n('version')]}),
     tableSchema({
       name: 'local_conflicts',

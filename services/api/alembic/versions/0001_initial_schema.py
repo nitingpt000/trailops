@@ -483,7 +483,7 @@ def upgrade() -> None:
     )
     op.create_index('uq_open_repair', 'repairs', ['org_id', 'item_id'], unique=True, postgresql_where=sa.text("state IN ('REQUESTED', 'MORE_INFORMATION_REQUIRED', 'APPROVED', 'IN_PROGRESS', 'AWAITING_RELEASE')"))
     # ### end Alembic commands ###
-    # Manually reviewed addition: audit rows are append-only for application roles (spec ง21).
+    # Manually reviewed addition: audit rows are append-only for application roles (spec ยง21).
     op.execute("""
         CREATE FUNCTION trailops_audit_append_only() RETURNS trigger AS $$
         BEGIN
