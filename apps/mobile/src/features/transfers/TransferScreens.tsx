@@ -221,6 +221,9 @@ export function TransferReceiveScreen({route, navigation}: ScreenProps<'Transfer
   const transfer = useProjection<TransferP>('transfers', Q.where('server_id', route.params.transferId))?.[0];
   const lines = useTransferLines(route.params.transferId);
   const locs = useAllLocations();
+  const orgLocs = useCachedOrgLocations();
+  const label = (id: string) =>
+    locs?.find(l => l.id === id)?.label ?? orgLocs?.find(l => l.id === id)?.label ?? 'another camp';
   const [results, setResults] = useState<Record<string, 'RECEIVED' | 'MISSING'>>({});
   const [note, setNote] = useState('');
   const [extra, setExtra] = useState('');
@@ -256,7 +259,7 @@ export function TransferReceiveScreen({route, navigation}: ScreenProps<'Transfer
       }>
       <Card>
         <Text style={type.heading}>{transfer.code}</Text>
-        <Text style={type.small}>From {locs?.find(l => l.id === transfer.from_location_id)?.label ?? 'another camp'} → {locs?.find(l => l.id === transfer.to_location_id)?.label}</Text>
+        <Text style={type.small}>From {label(transfer.from_location_id)} → {label(transfer.to_location_id)}</Text>
         <Text style={type.small}>Dispatched {formatTime(transfer.dispatched_at)}</Text>
       </Card>
       <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>

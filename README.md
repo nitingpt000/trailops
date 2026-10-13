@@ -15,6 +15,7 @@ console.
 ## Table of contents
 
 - [Features](#features)
+- [Screenshots](#screenshots)
 - [Tech stack](#tech-stack)
 - [Architecture](#architecture)
 - [Project structure](#project-structure)
@@ -47,6 +48,28 @@ console.
 - Visual form editor with a live mobile preview and versioned publishing.
 - Searchable audit trail with server and device timestamps.
 - User and camp access management.
+
+## Screenshots
+
+### Mobile app
+
+| Camp home | Equipment | Issue gear | Return inspection |
+| --- | --- | --- | --- |
+| ![Camp home](screenshots/mobile/02-camp-home.png) | ![Equipment list](screenshots/mobile/03-equipment-list.png) | ![Issue gear](screenshots/mobile/06-issue-gear.png) | ![Return inspection](screenshots/mobile/08-return-inspection.png) |
+
+| Receive handover | Sync centre | Allocation conflict | Repair review |
+| --- | --- | --- | --- |
+| ![Receive handover](screenshots/mobile/11-receive-handover.png) | ![Sync centre](screenshots/mobile/13-sync-centre.png) | ![Allocation conflict](screenshots/mobile/15-allocation-conflict.png) | ![Repair review](screenshots/mobile/17-repair-review.png) |
+
+### Web console
+
+![Equipment](screenshots/web/02-equipment.png)
+
+| Repair approvals | Form editor |
+| --- | --- |
+| ![Repair approvals](screenshots/web/06-repair-approvals.png) | ![Form editor](screenshots/web/09-form-editor.png) |
+
+All screenshots are in the [`screenshots`](screenshots) folder.
 
 ## Tech stack
 
