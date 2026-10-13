@@ -52,7 +52,7 @@ export function SettingsScreen({navigation}: ScreenProps<'Settings'>) {
       <Button testID="sign-out" title="Sign out" variant="danger" icon={<LogOut color={colors.error} size={20} />} onPress={async () => {
         const n = await pendingCount();
         if (n > 0) {
-          Alert.alert('Changes not yet synced', `${n} change(s) are still on this device. Sync them before signing out, or ask a supervisor for a recovery export.`);
+          Alert.alert('Changes not yet synced', `${n} change(s) are still only on this phone. Connect and sync before signing out. If you can't connect, keep this phone and tell your supervisor, so the work is not lost.`);
           return;
         }
         await forgetCredentials(account!.accountId);
