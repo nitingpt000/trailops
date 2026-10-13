@@ -117,11 +117,17 @@ export function useMeta(): SyncMetaRow | undefined {
 export function useNeedsReview(): QueueRow[] {
   const failed = useQueue(['CONFLICT', 'REJECTED', 'DEPENDENCY_WAIT']);
   const conflicts = useProjection<ConflictP>('conflicts');
+  const db = useDb();
+  const reviewed = useQuery(
+    () => db.get('local_conflicts').query(Q.where('resolution_state', 'RESOLVED')), [],
+    (rows: LocalRecord<{operation_id: string}>[]) => new Set(rows.map(r => r.r.operation_id)), ['resolution_state'],
+  );
   return useMemo(() => {
     const resolved = new Set((conflicts ?? []).filter(c => c.state === 'RESOLVED').map(c => c.operation_id));
+    for (const id of reviewed ?? []) resolved.add(id);
     return (failed ?? []).filter(q =>
       q.state === 'DEPENDENCY_WAIT' ? q.error_code === 'BLOCKED_BY_DEPENDENCY' : !resolved.has(q.operation_id));
-  }, [failed, conflicts]);
+  }, [failed, conflicts, reviewed]);
 }
 
 /** Pending commands keyed by aggregate id, for provisional overlays. */

@@ -7,7 +7,7 @@
  */
 import {Q, type Database, type Model} from '@nozbe/watermelondb';
 import type {CommandPayloads, CommandType, Precondition} from '@trailops/contracts';
-import {PENDING_STATES, type LocalRecord, type QueueRow} from '../database/models';
+import {PENDING_STATES, type LocalConflictRow, type LocalRecord, type QueueRow} from '../database/models';
 import {canonicalJson, sha256Hex, uuid} from '../native/sha256';
 
 export interface NewCommand<T extends CommandType = CommandType> {
@@ -101,4 +101,23 @@ export async function pendingFor(db: Database, accountId: string, aggregateId: s
     )
     .fetch();
   return rows.map(r => r.r);
+}
+
+/**
+ * A person acknowledges a rejected/conflicted operation. The command row and its receipt stay as
+ * history (never deleted); only the "needs review" alert is cleared.
+ */
+export async function markReviewed(db: Database, operationId: string): Promise<void> {
+  const table = db.get<LocalRecord<LocalConflictRow>>('local_conflicts');
+  const rows = await table.query(Q.where('operation_id', operationId)).fetch();
+  await db.write(async () => {
+    if (rows.length) {
+      await db.batch(...rows.map(r => r.prepareUpdate(x => x.set({resolution_state: 'RESOLVED'}))));
+    } else {
+      await table.create(r => {
+        Object.assign(r._raw, {conflict_id: null, operation_id: operationId, code: 'REVIEWED', details_json: '{}',
+          resolution_state: 'RESOLVED'});
+      });
+    }
+  });
 }

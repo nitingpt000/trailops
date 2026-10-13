@@ -7,7 +7,7 @@ import LokiJSAdapter from '@nozbe/watermelondb/adapters/lokijs';
 import {modelClasses, type LocalRecord, type ProjectionRecord, type QueueRow} from '../src/database/models';
 import {schema} from '../src/database/schema';
 import {applyEvents, replaceSnapshot} from '../src/sync/projectionAdapter';
-import {enqueue, pendingQuery} from '../src/sync/queue';
+import {enqueue, markReviewed, pendingQuery} from '../src/sync/queue';
 import {applyReceipts} from '../src/sync/coordinator';
 
 jest.mock('react-native-keychain', () => ({}));
@@ -107,6 +107,18 @@ describe('receipts', () => {
     expect(r.state).toBe('DEPENDENCY_WAIT');
     expect(r.next_retry_at).toBeGreaterThan(Date.now());
     expect(await pendingQuery(db, 'a').fetchCount()).toBe(1);
+  });
+
+  it('marking a rejected operation reviewed keeps it as history', async () => {
+    const db = makeDb();
+    const a = await enqueue(db, {accountId: 'a', deviceId: 'd'}, issue('item-1'));
+    await applyReceipts(db, await queueRows(db), [
+      {operation_id: a, status: 'REJECTED', code: 'FORBIDDEN', message: 'no', retryable: false},
+    ]);
+    await markReviewed(db, a);
+    const lc = await db.get<LocalRecord<{resolution_state: string}>>('local_conflicts').query().fetch();
+    expect(lc.map(r => r.r.resolution_state)).toEqual(['RESOLVED']);
+    expect((await queueRows(db))[0].r.state).toBe('REJECTED'); // never deleted
   });
 
   it('payload is hashed and stored at creation', async () => {

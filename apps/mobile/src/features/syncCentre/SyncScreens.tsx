@@ -7,7 +7,8 @@ import {Text, View} from 'react-native';
 import {ArrowUp, CircleAlert, CircleCheck, Clock, Image as ImageIcon, RefreshCw, Wifi, WifiOff} from 'lucide-react-native';
 import {SYNC_LABEL} from '@trailops/contracts';
 import type {ScreenProps} from '../../app/navigation';
-import {useSession} from '../../app/session';
+import {useDb, useSession} from '../../app/session';
+import {markReviewed} from '../../sync/queue';
 import {triggerSync} from '../../app/startup';
 import {useAttachmentQueue, useMeta, useNeedsReview, useOpenConflicts, useQueue} from '../../database/hooks';
 import type {QueueRow} from '../../database/models';
@@ -101,7 +102,9 @@ export function SyncCentreScreen({navigation}: ScreenProps<'SyncCentre'>) {
 }
 
 export function OperationDetailScreen({route, navigation}: ScreenProps<'OperationDetail'>) {
+  const db = useDb();
   const q = (useQueue() ?? []).find(x => x.operation_id === route.params.operationId);
+  const needsReview = useNeedsReview().some(r => r.operation_id === route.params.operationId);
   const conflicts = useOpenConflicts() ?? [];
   const role = useSession(s => s.me?.role);
   if (!q) return <Screen onBack={navigation.goBack}><Text>Not found.</Text></Screen>;
@@ -116,6 +119,12 @@ export function OperationDetailScreen({route, navigation}: ScreenProps<'Operatio
         <Card>{Object.entries(result.field_errors as Record<string, string>).map(([k, v]) => <KeyValue key={k} k={k} v={v} />)}</Card>
       ) : null}
       {conflict ? <Button testID="open-conflict" title="Resolve allocation conflict" onPress={() => navigation.navigate('ConflictDetail', {conflictId: conflict.id})} /> : null}
+      {needsReview ? (
+        <Button testID="mark-reviewed" title="Mark as reviewed" variant="secondary" onPress={async () => {
+          await markReviewed(db, q.operation_id);
+          navigation.goBack();
+        }} />
+      ) : null}
       {q.state === 'REJECTED' ? (
         <Banner tone="info">
           {"This record is kept on the device for supervised recovery. Correct the situation and create a new action; the original is never resent with different content."}
