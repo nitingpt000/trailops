@@ -16,7 +16,7 @@ import {
   useAllLocations, useCampEquipment, useCampLocations, useItem, useProjection, useQueue, useTransferLines, useTransfers,
 } from '../../database/hooks';
 import type {DraftRow, LocalRecord} from '../../database/models';
-import {api} from '../../sync/api';
+import {ORG_LOCATIONS_KEY, refreshOrgLocations, type OrgLocation} from '../../sync/orgLocations';
 import {enqueue} from '../../sync/queue';
 import {uuid} from '../../native/sha256';
 import {Banner, Button, Card, Divider, Empty, Field, Input, ItemThumb, Pill, Row, Screen, Sheet} from '../../ui/components';
@@ -108,10 +108,6 @@ function TagChecklist({views, selected, toggle}: {views: ItemView[]; selected: S
   );
 }
 
-interface OrgLocation {id: string; label: string; camp_id: string; camp_name: string}
-
-const ORG_LOCATIONS_KEY = 'cache:org-locations';
-
 /** Labels for locations outside this camp's scope, cached from the last online lookup. */
 function useCachedOrgLocations(): OrgLocation[] | undefined {
   const db = useDb();
@@ -138,26 +134,13 @@ export function TransferDispatchScreen({navigation}: ScreenProps<'TransferDispat
   const [note, setNote] = useState('');
   const [sheet, setSheet] = useState<null | 'origin' | 'dest'>(null);
 
-  // Destinations outside this camp are not in the scoped download; fetch when online and cache locally.
+  // Destinations outside this camp are not in the scoped download: use the cached list and refresh it.
+  const cached = useCachedOrgLocations();
   useEffect(() => {
-    const cacheKey = ORG_LOCATIONS_KEY;
-    (async () => {
-      const rows = await db.get<LocalRecord<DraftRow>>('drafts').query(Q.where('screen_key', cacheKey)).fetch();
-      if (rows[0]) setOrgLocs(JSON.parse(rows[0].r.values_json));
-      try {
-        const r = await api<{items: OrgLocation[]}>({accountId: account!.accountId}, 'GET', '/v1/locations');
-        setOrgLocs(r.items);
-        await db.write(async () => {
-          if (rows[0]) await rows[0].update(d => d.set({values_json: JSON.stringify(r.items), saved_at: Date.now()}));
-          else await db.get<LocalRecord<DraftRow>>('drafts').create(d => {
-            Object.assign(d._raw, {owner_id: account!.accountId, screen_key: cacheKey, entity_id: null, form_version_id: null,
-              values_json: JSON.stringify(r.items), saved_at: Date.now()});
-          });
-        });
-      } catch {
-        // offline: cached list (if any) is used
-      }
-    })();
+    if (cached) setOrgLocs(cached);
+  }, [cached]);
+  useEffect(() => {
+    refreshOrgLocations(db, {accountId: account!.accountId}).then(setOrgLocs).catch(() => undefined);
   }, [db, account]);
 
   const available = (views ?? []).filter(v => !v.locallyBusy);

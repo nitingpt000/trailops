@@ -10,10 +10,11 @@ import {
   Text,
   TextInput,
   TextInputProps,
+  useWindowDimensions,
   View,
   ViewStyle,
 } from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import {SafeAreaView, useSafeAreaInsets} from 'react-native-safe-area-context';
 import {ArrowLeft, ChevronRight, CircleAlert, CloudOff, Info} from 'lucide-react-native';
 import {STATUS_LABEL, type EquipmentStatus, type Tone} from '@trailops/contracts';
 import {categoryImages, colors, fonts, radius, space, toneColors, touchTargetMin, type} from './tokens';
@@ -259,12 +260,15 @@ export function Divider() {
 }
 
 export function Sheet({visible, onClose, title, children}: {visible: boolean; onClose: () => void; title: string; children: React.ReactNode}) {
+  const insets = useSafeAreaInsets();
+  const {height} = useWindowDimensions();
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
       <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Close" />
-      <View style={styles.sheet} accessibilityViewIsModal>
+      {/* Bottom inset keeps the last row clear of the gesture bar; height adapts to the screen. */}
+      <View style={[styles.sheet, {paddingBottom: space.l + insets.bottom}]} accessibilityViewIsModal>
         <Text style={[type.heading, {marginBottom: space.m}]}>{title}</Text>
-        <ScrollView style={{maxHeight: 460}} keyboardShouldPersistTaps="handled">{children}</ScrollView>
+        <ScrollView style={{maxHeight: Math.round(height * 0.6)}} keyboardShouldPersistTaps="handled">{children}</ScrollView>
       </View>
     </Modal>
   );

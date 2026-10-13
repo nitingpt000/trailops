@@ -73,7 +73,8 @@ const TILES: { key: string; label: string; statuses: EquipmentStatus[]; icon: ty
 export function EquipmentPage() {
   const { camp, can } = useSession();
   const [params, setParams] = useSearchParams();
-  const [q, setQ] = useState('');
+  // Search lives in the URL like the other filters, so results can be linked and survive reloads.
+  const [q, setQ] = useState(() => params.get('q') ?? '');
   const dq = useDebounced(q.trim());
   const status = params.get('status') ?? '';
   const categoryId = params.get('category') ?? '';
@@ -87,6 +88,11 @@ export function EquipmentPage() {
     else next.delete(k);
     setParams(next, { replace: k !== 'item' });
   };
+
+  useEffect(() => {
+    if (dq !== (params.get('q') ?? '')) setParam('q', dq || null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dq]);
 
   const filters = useMemo(
     () => ({ camp_id: camp?.id, status: status || undefined, category_id: categoryId || undefined, q: dq || undefined }),

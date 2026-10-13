@@ -14,7 +14,7 @@ import {
 } from '../../database/hooks';
 import {Q} from '@nozbe/watermelondb';
 import type {AllocationP, BatchMemberP, TransferP} from '@trailops/contracts';
-import {Button, Divider, OfflineStrip, Row, Screen} from '../../ui/components';
+import {Banner, Button, Divider, OfflineStrip, Row, Screen} from '../../ui/components';
 import {colors, space, type} from '../../ui/tokens';
 import {useSync} from '../../sync/coordinator';
 import {Wordmark} from '../signin/SignInScreens';
@@ -78,6 +78,11 @@ export function HomeScreen() {
       </View>
       <Image source={require('../../../assets/images/camp-mountain-banner.png')}
         style={{width: '100%', height: 170, borderRadius: 12}} resizeMode="cover" accessibilityIgnoresInvertColors />
+      {!camp ? (
+        <Banner tone="warning" title="No camp access">
+          You are not assigned to a camp, so no equipment is shown. Saved work stays on this device for review.
+        </Banner>
+      ) : null}
       <OfflineStrip online={online !== false} pending={pending?.length ?? 0} onPress={() => nav.navigate('SyncCentre')} />
       <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline'}}>
         <Text style={type.heading}>Today</Text>

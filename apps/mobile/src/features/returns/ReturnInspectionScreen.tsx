@@ -175,7 +175,11 @@ export function ReturnInspectionScreen({route, navigation}: ScreenProps<'ReturnI
         errors={errors}
         photos={values.photos}
         equipmentLabel={`${item.tag} · ${itemTitle(v)}`}
-        onChange={(id, val) => update({...values, answers: {...values.answers, [id]: val}})}
+        onChange={(id, val) => {
+          update({...values, answers: {...values.answers, [id]: val}});
+          // A field's error clears as soon as it is answered; the rest are re-checked on save.
+          if (errors[id]) setErrors(({[id]: _cleared, ...rest}) => rest);
+        }}
         onAddPhoto={id => setCaptureFor(id)}
         onRemovePhoto={async (id, attId) => {
           const p = (values.photos[id] ?? []).find(x => x.attachment_id === attId);
@@ -187,6 +191,7 @@ export function ReturnInspectionScreen({route, navigation}: ScreenProps<'ReturnI
         onCaptured={p => {
           const id = captureFor!;
           update({...values, photos: {...values.photos, [id]: [...(values.photos[id] ?? []), p]}});
+          if (errors[id]) setErrors(({[id]: _cleared, ...rest}) => rest);
         }} />
     </Screen>
   );

@@ -148,17 +148,21 @@ async def resolve_principal(session: AsyncSession, subject: str, device_header: 
             select(CampMembership).where(
                 CampMembership.org_id == membership.org_id,
                 CampMembership.user_id == user.id,
-                CampMembership.enabled,
             )
         )
     ).scalars()
     camp_ids: set[uuid.UUID] = set()
     camp_perms: dict[uuid.UUID, frozenset[str]] = {}
+    # The epoch must strictly increase on every access change, including revocations, so it sums
+    # the epochs of *all* camp memberships (enabled or not). Summing only enabled ones let a
+    # revocation cancel out and devices kept revoked data.
     epoch = membership.scope_epoch
     for cm in camp_rows:
+        epoch += cm.access_epoch
+        if not cm.enabled:
+            continue
         camp_ids.add(cm.camp_id)
         camp_perms[cm.camp_id] = frozenset(cm.permissions or [])
-        epoch += cm.access_epoch
     if membership.org_wide:
         all_camps = (await session.execute(select(Camp.id).where(Camp.org_id == membership.org_id))).scalars()
         camp_ids.update(all_camps)

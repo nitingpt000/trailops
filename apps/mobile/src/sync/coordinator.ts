@@ -11,11 +11,13 @@ import {retryDelayMs, type BootstrapResponse, type ChangesResponse, type Receipt
 import {config} from '../app/config';
 import {AuthExpiredError, OfflineError, installationId, readAccount, writeAccount, type AccountMarker} from '../auth/session';
 import {getMeta} from '../database';
+import {useSession} from '../app/session';
 import type {AttachmentRow, LocalConflictRow, LocalRecord, QueueRow, SyncMetaRow} from '../database/models';
 import {HttpError, NetworkError, api, type ApiContext} from './api';
 import {applyEvents, changeToIncoming, replaceSnapshot} from './projectionAdapter';
 import {queueTable} from './queue';
 import {uploadReadyAttachments} from './attachments';
+import {refreshOrgLocations} from './orgLocations';
 
 export interface Me {
   user: {id: string; display_name: string; email: string | null};
@@ -50,6 +52,19 @@ export const useSync = create<SyncState>(set => ({
 
 let inFlight: Promise<void> | null = null;
 
+/** Keep the session's permissions current and leave a camp the user can no longer access (spec §4). */
+function applyScope(me: Me) {
+  const session = useSession.getState();
+  const campStillAllowed = !!session.campId && me.camps.some(c => c.id === session.campId);
+  if (campStillAllowed) {
+    session.set({me});
+  } else if (me.camps.length === 1) {
+    session.set({me, campId: me.camps[0].id});
+  } else {
+    session.set({me, campId: null, phase: me.camps.length ? 'campSelect' : 'ready'});
+  }
+}
+
 export function runSync(db: Database, reason: string): Promise<void> {
   if (inFlight) return inFlight; // single-flight
   inFlight = doSync(db, reason).finally(() => {
@@ -72,7 +87,11 @@ async function doSync(db: Database, _reason: string): Promise<void> {
       meta.update(m => (m as LocalRecord<SyncMetaRow>).set({me_json: JSON.stringify(me), last_verified_at: Date.now()})),
     );
     s.set({online: true, authBlocked: false});
+    applyScope(me);
     await unblockAuth(db, marker.accountId);
+
+    // Labels for other camps' locations (handover origins/destinations); failure is non-fatal.
+    await refreshOrgLocations(db, ctx).catch(() => undefined);
 
     s.set({phase: 'Downloading changes'});
     if (!meta.r.cursor || meta.r.scope_epoch !== me.scope_epoch) {

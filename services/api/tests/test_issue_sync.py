@@ -384,3 +384,23 @@ async def test_cursor_roundtrip_is_stable_for_many_sequences(api):
         principal = await resolve_principal(s, str(sid("user:aditi")), None)
     for seq in range(0, 3000, 7):
         assert read_cursor(principal, make_cursor(principal, seq, "g"))["s"] == seq
+
+
+async def test_revoking_camp_access_forces_rebootstrap_and_purges_data(api):
+    """Regression: revocation used to leave the scope epoch unchanged, so devices kept revoked data."""
+    await api.device("aditi")
+    boot = await _bootstrap(api, "aditi")
+    assert any(e["tag"] == "JKT-014" for e in boot["records"]["equipment"])
+    res = await api.cmd("kabir", "MEMBERSHIP_UPDATE", None, {"user_id": str(sid("user:aditi")),
+                        "camp_id": str(sid("camp:LHJ")), "enabled": False})
+    assert res["status"] == "ACCEPTED"
+    r = await api.get("aditi", "/v1/sync/changes", cursor=boot["cursor"])
+    assert r.status_code == 409 and r.json()["error"]["code"] == "RESYNC_REQUIRED"
+    boot2 = await _bootstrap(api, "aditi")
+    assert boot2["records"]["equipment"] == [] and boot2["records"]["batch"] == []
+    assert boot2["scope_epoch"] > boot["scope_epoch"]
+    # Re-granting changes the epoch again (no reuse of an old value).
+    await api.cmd("kabir", "MEMBERSHIP_UPDATE", None, {"user_id": str(sid("user:aditi")),
+                  "camp_id": str(sid("camp:LHJ")), "enabled": True})
+    boot3 = await _bootstrap(api, "aditi")
+    assert boot3["scope_epoch"] > boot2["scope_epoch"] and boot3["records"]["equipment"]

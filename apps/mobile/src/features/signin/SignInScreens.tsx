@@ -104,6 +104,12 @@ export function CampSelectScreen({onDone}: {onDone?: () => void}) {
     <SafeAreaView style={{flex: 1, padding: space.l, gap: space.m}}>
       <Text style={type.title}>Choose camp</Text>
       <Text style={type.small}>You only see equipment and rosters for camps you are assigned to.</Text>
+      {me && me.camps.length === 0 ? (
+        <Banner tone="warning" title="No camp access">
+          Your account is not assigned to any camp right now. Work already saved on this device is kept; ask a
+          supervisor to restore access.
+        </Banner>
+      ) : null}
       {(me?.camps ?? []).map(c => (
         <Button key={c.id} title={c.name} variant="secondary" onPress={async () => {
           await chooseCamp(c.id);
