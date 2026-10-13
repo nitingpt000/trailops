@@ -1,3 +1,4 @@
+import { Dropdown } from '../../ui/Dropdown';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ArrowRight, Check, Package, Plus, Search, Truck, TriangleAlert, Wrench } from 'lucide-react';
@@ -163,18 +164,18 @@ export function EquipmentPage() {
           </label>
           <label className="filter">
             <span>Category</span>
-            <select className="input" value={categoryId} onChange={(e) => setParam('category', e.target.value || null)}>
+            <Dropdown aria-label="Category" value={categoryId} onChange={(e) => setParam('category', e.target.value || null)}>
               <option value="">All categories</option>
               {categories.data?.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
                 </option>
               ))}
-            </select>
+            </Dropdown>
           </label>
           <label className="filter">
             <span>Status</span>
-            <select className="input" value={status} onChange={(e) => setParam('status', e.target.value || null)}>
+            <Dropdown aria-label="Status" value={status} onChange={(e) => setParam('status', e.target.value || null)}>
               <option value="">All status</option>
               {EQUIPMENT_STATUSES.map((s) => (
                 <option key={s} value={s}>
@@ -182,7 +183,7 @@ export function EquipmentPage() {
                 </option>
               ))}
               {!EQUIPMENT_STATUSES.includes(status as EquipmentStatus) && status && <option value={status}>Repair (all)</option>}
-            </select>
+            </Dropdown>
           </label>
         </div>
 

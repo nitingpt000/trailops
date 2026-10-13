@@ -1,3 +1,4 @@
+import { Dropdown } from '../ui/Dropdown';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
@@ -123,18 +124,16 @@ function CampSelector() {
   const { me, camp, setCampId } = useSession();
   if (!camp) return <span className="topbar-item muted">No camp access</span>;
   return (
-    <label className="topbar-item camp-select">
+    <div className="topbar-item camp-select">
       <MapPin size={20} aria-hidden />
-      <span className="sr-only">Camp</span>
-      <select value={camp.id} onChange={(e) => setCampId(e.target.value)} aria-label="Select camp">
+      <Dropdown variant="bare" value={camp.id} onChange={(e) => setCampId(e.target.value)} aria-label="Select camp">
         {me.camps.map((c) => (
           <option key={c.id} value={c.id}>
             {c.name.replace(/ base camp$/i, '')}
           </option>
         ))}
-      </select>
-      <ChevronDown size={16} aria-hidden className="select-chevron" />
-    </label>
+      </Dropdown>
+    </div>
   );
 }
 

@@ -1,3 +1,4 @@
+import { Dropdown } from '../../ui/Dropdown';
 import { useEffect, useId, useState, type Dispatch } from 'react';
 import { ArrowDown, ArrowUp, Lock, Plus, X } from 'lucide-react';
 import { FIELD_TYPES, optionLabel, type FormField, type FormSchema, type Rule } from '@trailops/contracts';
@@ -67,20 +68,20 @@ function ConditionBuilder({
       ) : (
         <div className="cond-row">
           <label className="sr-only" htmlFor={`${uid}-f`}>Condition field</label>
-          <select id={`${uid}-f`} className="input" value={simple?.field ?? ''} onChange={(e) => start(e.target.value)}>
+          <Dropdown id={`${uid}-f`} value={simple?.field ?? ''} onChange={(e) => start(e.target.value)}>
             <option value="">Always</option>
             {sources.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.label || s.id}
               </option>
             ))}
-          </select>
+          </Dropdown>
           {simple && src && (
             <>
               <label className="sr-only" htmlFor={`${uid}-o`}>Operator</label>
-              <select
+              <Dropdown
                 id={`${uid}-o`}
-                className="input cond-op"
+                className="cond-op"
                 value={simple.operator}
                 onChange={(e) => {
                   const op = e.target.value as 'equals' | 'not_equals' | 'in';
@@ -92,7 +93,7 @@ function ConditionBuilder({
                 <option value="equals">is</option>
                 <option value="not_equals">is not</option>
                 {src.type === 'select' && <option value="in">is one of</option>}
-              </select>
+              </Dropdown>
               {simple.operator === 'in' ? (
                 <fieldset className="cond-multi">
                   <legend className="sr-only">Values</legend>
@@ -117,9 +118,9 @@ function ConditionBuilder({
               ) : (
                 <>
                   <label className="sr-only" htmlFor={`${uid}-v`}>Value</label>
-                  <select
+                  <Dropdown
                     id={`${uid}-v`}
-                    className="input"
+                    
                     value={String(simple.value)}
                     onChange={(e) => {
                       const picked = values(src).find((x) => String(x.v) === e.target.value);
@@ -131,7 +132,7 @@ function ConditionBuilder({
                         {label}
                       </option>
                     ))}
-                  </select>
+                  </Dropdown>
                 </>
               )}
             </>
@@ -246,13 +247,13 @@ export function FieldConfig({
       )}
       <div className="config-row">
         <label htmlFor={`${uid}-type`}>Field type</label>
-        <select id={`${uid}-type`} className="input" value={field.type} disabled={locked} onChange={(e) => dispatch({ type: 'setType', id: field.id, fieldType: e.target.value as FormField['type'] })}>
+        <Dropdown id={`${uid}-type`} value={field.type} disabled={locked} onChange={(e) => dispatch({ type: 'setType', id: field.id, fieldType: e.target.value as FormField['type'] })}>
           {FIELD_TYPES.map((t) => (
             <option key={t} value={t}>
               {TYPE_LABEL[t]}
             </option>
           ))}
-        </select>
+        </Dropdown>
       </div>
       <div className="config-row">
         <label htmlFor={`${uid}-label`}>Field label</label>

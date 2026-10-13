@@ -1,3 +1,4 @@
+import { Dropdown } from '../../ui/Dropdown';
 import { useMemo, useState } from 'react';
 import { Barcode, ImagePlus, RotateCcw } from 'lucide-react';
 import { isRequired, optionLabel, validateAnswers, visibleFields, type FormField, type FormSchema } from '@trailops/contracts';
@@ -49,14 +50,14 @@ export function MobilePreview({ schema, selectedId, onSelect }: { schema: FormSc
               ))}
             </div>
           ) : (
-            <select id={id} className="input" value={(v as string) ?? ''} onChange={(e) => set(f.id, e.target.value || undefined)}>
+            <Dropdown id={id} emptyIsPlaceholder value={(v as string) ?? ''} onChange={(e) => set(f.id, e.target.value || undefined)}>
               <option value="">Select…</option>
               {(f.options ?? []).map((o) => (
                 <option key={o} value={o}>
                   {optionLabel(f, o)}
                 </option>
               ))}
-            </select>
+            </Dropdown>
           );
         break;
       case 'boolean':

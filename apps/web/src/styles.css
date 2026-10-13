@@ -450,3 +450,48 @@ select.input { padding-right: 32px; }
   .option-row { grid-template-columns: auto 1fr 40px; }
   .option-row .code-input { grid-column: 2; }
 }
+
+/* ---------- Dropdown (design-system select) ---------- */
+.dd { position: relative; width: 100%; min-width: 0; }
+.dd-trigger {
+  width: 100%; min-height: 44px; display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border: 1px solid #c9ccd2; border-radius: var(--radius); background: var(--surface);
+  text-align: left; cursor: pointer; transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.dd-trigger:hover:not(:disabled) { border-color: #8d929b; }
+.dd-trigger:focus-visible { outline: none; box-shadow: var(--focus); }
+.dd-open .dd-trigger { border-color: var(--ink); }
+.dd-trigger:disabled { background: #f3f4f6; color: #6b7280; cursor: not-allowed; }
+.dd-trigger.dd-invalid { border-color: var(--error); }
+.dd-value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dd-placeholder { color: var(--muted); }
+.dd-chevron { flex: none; color: var(--ink); transition: transform 0.15s ease; }
+.dd-open .dd-chevron { transform: rotate(180deg); }
+
+.dd-panel {
+  margin: 0; padding: 6px; list-style: none; overflow-y: auto; overscroll-behavior: contain;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--divider); border-radius: var(--radius-panel);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14), 0 2px 6px rgba(0, 0, 0, 0.06); font: 15px/1.35 var(--font-body);
+}
+/* Popover API top layer: reset the UA's centred inset/margins; JS sets the coordinates. */
+.dd-panel[popover] { inset: auto; margin: 0; }
+.dd-panel-inline { position: absolute; top: calc(100% + 4px); left: 0; z-index: 50; }
+.dd-option {
+  display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 8px 10px;
+  border-radius: 6px; cursor: pointer; user-select: none;
+}
+.dd-option-label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.dd-option.dd-active { background: var(--yellow-tint); }
+.dd-option.dd-selected { background: var(--yellow-soft); font-weight: 600; }
+.dd-option.dd-selected.dd-active { background: #ffefa8; }
+.dd-check { flex: none; color: var(--ink); }
+.dd-option.dd-disabled { color: #9aa1ab; cursor: not-allowed; background: none; }
+
+/* Top-bar camp switcher: borderless trigger on the yellow bar. */
+.dd-bare .dd-trigger { border: 0; background: transparent; min-height: 48px; padding: 0 4px; font-weight: 500; gap: 6px; }
+.dd-bare .dd-trigger:hover:not(:disabled) { background: rgba(0, 0, 0, 0.06); }
+.dd-bare.dd-open .dd-trigger { background: rgba(0, 0, 0, 0.08); }
+.dd-bare .dd-value { flex: none; }
+
+/* Filter bars and compact editor rows keep their existing widths. */
+.cond-row > .dd { flex: 1 1 130px; width: auto; }

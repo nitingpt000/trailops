@@ -1,3 +1,4 @@
+import { Dropdown } from '../../ui/Dropdown';
 import { Fragment, useState, type FormEvent } from 'react';
 import { ChevronDown, ChevronRight, History } from 'lucide-react';
 import { useAudit, useUsers, type AuditFilters } from '../../api/queries';
@@ -71,14 +72,14 @@ export function AuditPage() {
         </label>
         <label className="filter">
           <span>Actor</span>
-          <select className="input" value={form.actor_id} onChange={set('actor_id')}>
+          <Dropdown aria-label="Actor" value={form.actor_id} onChange={set('actor_id')}>
             <option value="">Anyone</option>
             {users.data?.map((u) => (
               <option key={u.id} value={u.id}>
                 {u.display_name}
               </option>
             ))}
-          </select>
+          </Dropdown>
         </label>
         <label className="filter">
           <span>Event type</span>

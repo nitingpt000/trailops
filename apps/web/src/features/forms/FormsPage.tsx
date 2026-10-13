@@ -1,3 +1,4 @@
+import { Dropdown } from '../../ui/Dropdown';
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import {
   AlignLeft,
@@ -345,13 +346,13 @@ export function FormsPage() {
       {forms.data && forms.data.length > 1 && (
         <label className="filter">
           <span>Form</span>
-          <select className="input" value={def.id} onChange={(e) => setDefId(e.target.value)}>
+          <Dropdown aria-label="Form" value={def.id} onChange={(e) => setDefId(e.target.value)}>
             {forms.data.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.title}
               </option>
             ))}
-          </select>
+          </Dropdown>
         </label>
       )}
       <Editor key={editorKey} def={def} draft={draft} base={base} nextNumber={nextNumber} />

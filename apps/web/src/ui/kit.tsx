@@ -1,10 +1,10 @@
+import { Dropdown, type DropdownProps } from './Dropdown';
 import {
   useEffect,
   useId,
   useRef,
   type ButtonHTMLAttributes,
   type ReactNode,
-  type SelectHTMLAttributes,
   type InputHTMLAttributes,
   type TextareaHTMLAttributes,
 } from 'react';
@@ -179,13 +179,13 @@ export function Select({
   required,
   children,
   ...rest
-}: SelectHTMLAttributes<HTMLSelectElement> & { label: ReactNode; hint?: ReactNode; error?: string | null }) {
+}: Omit<DropdownProps, 'aria-invalid'> & { label: ReactNode; hint?: ReactNode; error?: string | null }) {
   const id = useId();
   return (
     <Field label={label} hint={hint} error={error} htmlFor={rest.id ?? id} required={required}>
-      <select id={rest.id ?? id} className="input" required={required} aria-invalid={!!error || undefined} {...rest}>
+      <Dropdown id={rest.id ?? id} required={required} aria-invalid={!!error || undefined} emptyIsPlaceholder {...rest}>
         {children}
-      </select>
+      </Dropdown>
     </Field>
   );
 }
@@ -227,6 +227,9 @@ export function Dialog({
       aria-labelledby={titleId}
       onCancel={(e) => {
         e.preventDefault();
+        // Escape that just closed an open dropdown inside this dialog must not close the dialog too.
+        const at = Number(ref.current?.dataset.dropdownEscapeAt ?? 0);
+        if (Date.now() - at < 250) return;
         closeRef.current();
       }}
       onClick={(e) => {
