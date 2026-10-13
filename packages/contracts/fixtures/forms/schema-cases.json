@@ -1,0 +1,31 @@
+{
+  "base": {
+    "schema_version": 1,
+    "key": "return-inspection",
+    "version": 4,
+    "fields": [
+      {"id": "condition", "type": "select", "required": true, "options": ["GOOD", "NEEDS_REPAIR", "UNUSABLE"]},
+      {"id": "issue_type", "type": "select", "required": true, "options": ["BROKEN_ZIP", "TEAR", "OTHER"],
+       "visible_when": {"field": "condition", "operator": "equals", "value": "NEEDS_REPAIR"}},
+      {"id": "notes", "type": "textarea", "max_length": 500},
+      {"id": "photos", "type": "photo", "max_count": 3,
+       "required_when": {"field": "condition", "operator": "equals", "value": "NEEDS_REPAIR"}}
+    ]
+  },
+  "cases": [
+    {"name": "valid base", "patch": null, "errors": []},
+    {"name": "unknown field type", "patch": {"fields.2.type": "script"}, "errors": ["fields.2.type"]},
+    {"name": "rule references later field (cycle)", "patch": {"fields.0.visible_when": {"field": "notes", "operator": "equals", "value": "x"}}, "errors": ["fields.0.visible_when", "fields.condition"]},
+    {"name": "rule references unknown field", "patch": {"fields.2.visible_when": {"field": "ghost", "operator": "equals", "value": "x"}}, "errors": ["fields.2.visible_when"]},
+    {"name": "unsupported operator", "patch": {"fields.1.visible_when": {"field": "condition", "operator": "eval", "value": "1"}}, "errors": ["fields.1.visible_when"]},
+    {"name": "expression smuggled as extra key", "patch": {"fields.1.visible_when": {"field": "condition", "operator": "equals", "value": "GOOD", "js": "alert(1)"}}, "errors": ["fields.1.visible_when"]},
+    {"name": "incompatible value type", "patch": {"fields.1.visible_when": {"field": "condition", "operator": "equals", "value": "BROKEN"}}, "errors": ["fields.1.visible_when"]},
+    {"name": "too deep", "patch": {"fields.1.visible_when": {"and": [{"and": [{"and": [{"and": [{"field": "condition", "operator": "equals", "value": "GOOD"}]}]}]}]}}, "errors": ["fields.1.visible_when"]},
+    {"name": "business field removed", "patch": {"fields.0": null}, "errors": ["fields.condition", "fields.0.visible_when", "fields.2.required_when"]},
+    {"name": "business field made optional", "patch": {"fields.0.required": false}, "errors": ["fields.condition"]},
+    {"name": "business options changed", "patch": {"fields.0.options": ["GOOD", "BAD"]}, "errors": ["fields.condition.options", "fields.1.visible_when", "fields.3.required_when"]},
+    {"name": "duplicate id", "patch": {"fields.2.id": "condition"}, "errors": ["fields.2.id"]},
+    {"name": "unknown top-level property", "patch": {"handler": "x"}, "errors": ["handler"]},
+    {"name": "photo max_count out of range", "patch": {"fields.3.max_count": 50}, "errors": ["fields.3.max_count"]}
+  ]
+}

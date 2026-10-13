@@ -1,0 +1,15 @@
+{
+  "schema_ref": "schema-cases.json#base",
+  "cases": [
+    {"name": "good return", "answers": {"condition": "GOOD"}, "attachments": [], "errors": []},
+    {"name": "needs repair complete", "answers": {"condition": "NEEDS_REPAIR", "issue_type": "TEAR", "photos": ["a1"]}, "attachments": ["a1"], "errors": []},
+    {"name": "needs repair missing issue type and photo", "answers": {"condition": "NEEDS_REPAIR"}, "attachments": [], "errors": ["issue_type", "photos"]},
+    {"name": "hidden answer supplied", "answers": {"condition": "GOOD", "issue_type": "TEAR"}, "attachments": [], "errors": ["issue_type"]},
+    {"name": "unknown field", "answers": {"condition": "GOOD", "extra": 1}, "attachments": [], "errors": ["extra"]},
+    {"name": "bad option", "answers": {"condition": "FINE"}, "attachments": [], "errors": ["condition"]},
+    {"name": "notes too long", "answers": {"condition": "GOOD", "notes": "@@LONG@@"}, "attachments": [], "errors": ["notes"]},
+    {"name": "photo not in submission", "answers": {"condition": "NEEDS_REPAIR", "issue_type": "TEAR", "photos": ["zz"]}, "attachments": ["a1"], "errors": ["photos"]},
+    {"name": "too many photos", "answers": {"condition": "NEEDS_REPAIR", "issue_type": "TEAR", "photos": ["a", "b", "c", "d"]}, "attachments": ["a", "b", "c", "d"], "errors": ["photos"]},
+    {"name": "missing required condition", "answers": {}, "attachments": [], "errors": ["condition"]}
+  ]
+}
