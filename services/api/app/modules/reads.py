@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
 from app.core.auth import Principal, current_principal
 from app.core.db import get_session
@@ -641,6 +642,7 @@ async def transfers(
                         "receipt_state": ln.receipt_state,
                         "discrepancy_reason": ln.discrepancy_reason,
                         "resolution": ln.resolution,
+                        "version": ln.version,
                     }
                     for ln, tag in lines
                 ],
@@ -672,6 +674,18 @@ async def repairs(
 
     out = []
     for r, item, insp in rows:
+        issued_to = None
+        if insp is not None and insp.allocation_id is not None:
+            row = (
+                await session.execute(
+                    select(Trekker.display_name, TrekBatch.code)
+                    .join(Allocation, Allocation.trekker_id == Trekker.id)
+                    .join(TrekBatch, TrekBatch.id == Allocation.batch_id)
+                    .where(Allocation.id == insp.allocation_id)
+                )
+            ).first()
+            if row:
+                issued_to = {"trekker_name": row[0], "batch_code": row[1]}
         atts = []
         if insp is not None:
             atts = (
@@ -700,6 +714,7 @@ async def repairs(
                 }
                 if insp
                 else None,
+                "issued_to": issued_to,
                 "requested_by": users.get(r.requested_by),
                 "decision_note": r.decision_note,
                 "work_notes": r.work_notes,
@@ -728,6 +743,7 @@ async def conflicts(
             .order_by(SyncConflict.created_at.desc())
         )
     ).all()
+    dest = aliased(Location)
     claims = (
         await session.execute(
             select(CustodyClaim, EquipmentItem.tag)
@@ -736,7 +752,19 @@ async def conflicts(
             .where(
                 CustodyClaim.org_id == principal.org_id,
                 CustodyClaim.state == "OPEN",
-                Location.camp_id.in_(principal.camp_ids),
+                or_(
+                    Location.camp_id.in_(principal.camp_ids),
+                    # A missing item stays at its origin; the receiving camp must still see the claim.
+                    CustodyClaim.source_id.in_(
+                        select(TransferLine.id)
+                        .join(Transfer, Transfer.id == TransferLine.transfer_id)
+                        .join(dest, dest.id == Transfer.to_location_id)
+                        .where(dest.camp_id.in_(principal.camp_ids))
+                    ),
+                    CustodyClaim.observed_location_id.in_(
+                        select(dest.id).where(dest.camp_id.in_(principal.camp_ids))
+                    ),
+                ),
             )
         )
     ).all()
@@ -928,6 +956,7 @@ async def users(
                 "email": u.email,
                 "role": m.role,
                 "enabled": u.enabled and m.enabled,
+                "version": m.scope_epoch,
                 "camps": [
                     {"camp_id": str(c.camp_id), "enabled": c.enabled, "permissions": c.permissions}
                     for c in cms

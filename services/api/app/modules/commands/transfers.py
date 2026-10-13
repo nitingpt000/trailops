@@ -212,7 +212,8 @@ async def receive_transfer(ctx: CommandCtx, p: ReceiveTransfer) -> dict:
         )
         tx.session.add(claim)
         claims.append(claim)
-    transfer.state = "DISCREPANCY" if (missing or p.extra_items) else "RECEIVED"
+    # Unknown tags are recorded in the notes; only missing lines or recognised extras need reconciling.
+    transfer.state = "DISCREPANCY" if claims else "RECEIVED"
     transfer.received_by = ctx.principal.user_id
     transfer.received_at = now
     notes = p.notes
@@ -240,6 +241,39 @@ async def receive_transfer(ctx: CommandCtx, p: ReceiveTransfer) -> dict:
     return {"transfer_id": str(transfer.id), "state": transfer.state, "missing": missing}
 
 
+async def reconcile_if_settled(ctx: CommandCtx, transfer: Transfer) -> bool:
+    """A DISCREPANCY transfer becomes RECONCILED once no missing line or extra-item claim is open."""
+    tx = ctx.tx
+    if transfer.state != "DISCREPANCY":
+        return False
+    await tx.session.flush()
+    open_line = (
+        await tx.session.execute(
+            select(TransferLine.id).where(
+                TransferLine.org_id == tx.org_id,
+                TransferLine.transfer_id == transfer.id,
+                TransferLine.receipt_state == "MISSING",
+                TransferLine.resolution.is_(None),
+            )
+        )
+    ).first()
+    open_extra = (
+        await tx.session.execute(
+            select(CustodyClaim.id).where(
+                CustodyClaim.org_id == tx.org_id,
+                CustodyClaim.source_type == "TRANSFER_EXTRA",
+                CustodyClaim.source_id == transfer.id,
+                CustodyClaim.state == "OPEN",
+            )
+        )
+    ).first()
+    if open_line is None and open_extra is None:
+        transfer.state = "RECONCILED"
+        bump(transfer)
+        return True
+    return False
+
+
 class ResolveDiscrepancy(Strict):
     finding: Literal["FOUND", "LOST"]
     location_id: uuid.UUID | None = None
@@ -258,6 +292,7 @@ async def resolve_discrepancy(ctx: CommandCtx, p: ResolveDiscrepancy) -> dict:
         or ctx.principal.has("transfer.resolve", origin.camp_id)
     ):
         raise Forbidden()
+    tx.check_version("transfer_line", line, ctx.expected_for("transfer_line", line.id))
     if line.receipt_state != "MISSING" or line.resolution is not None:
         raise Conflict("NO_OPEN_DISCREPANCY", "This line has no unresolved discrepancy.")
     item = await tx.lock_one(EquipmentItem, line.item_id)
@@ -299,31 +334,7 @@ async def resolve_discrepancy(ctx: CommandCtx, p: ResolveDiscrepancy) -> dict:
         claim.state = "RESOLVED"
         claim.resolution_note = p.reason
         bump(claim)
-    remaining = (
-        await tx.session.execute(
-            select(TransferLine.id).where(
-                TransferLine.org_id == tx.org_id,
-                TransferLine.transfer_id == transfer.id,
-                TransferLine.receipt_state == "MISSING",
-                TransferLine.resolution.is_(None),
-                TransferLine.id != line.id,
-            )
-        )
-    ).first()
-    if remaining is None:
-        open_extra = (
-            await tx.session.execute(
-                select(CustodyClaim.id).where(
-                    CustodyClaim.org_id == tx.org_id,
-                    CustodyClaim.source_type == "TRANSFER_EXTRA",
-                    CustodyClaim.source_id == transfer.id,
-                    CustodyClaim.state == "OPEN",
-                )
-            )
-        ).first()
-        if open_extra is None:
-            transfer.state = "RECONCILED"
-            bump(transfer)
+    await reconcile_if_settled(ctx, transfer)
     await tx.session.flush()
     await tx.emit("transfer_line", line)
     await tx.emit("equipment", item)
@@ -358,6 +369,7 @@ async def resolve_custody_claim(ctx: CommandCtx, p: ResolveCustodyClaim) -> dict
     ctx.principal.require("transfer.resolve", camp_id)
     if claim.state != "OPEN":
         raise Conflict("CLAIM_ALREADY_RESOLVED", "Already resolved.")
+    tx.check_version("custody_claim", claim, ctx.expected_for("custody_claim", claim.id))
     if claim.source_type == "ALLOCATION_CONFLICT":
         raise InvalidInput("USE_CONFLICT_RESOLUTION", "Resolve allocation conflicts from the conflict view.")
     if claim.source_type == "TRANSFER_MISSING":
@@ -380,6 +392,10 @@ async def resolve_custody_claim(ctx: CommandCtx, p: ResolveCustodyClaim) -> dict
     claim.resolution_note = p.note
     bump(claim)
     await tx.emit("custody_claim", claim)
+    if claim.source_type == "TRANSFER_EXTRA":
+        transfer = await tx.lock_one(Transfer, claim.source_id)
+        if await reconcile_if_settled(ctx, transfer):
+            await tx.emit("transfer", transfer)
     await tx.audit(
         "custody_claim",
         claim.id,

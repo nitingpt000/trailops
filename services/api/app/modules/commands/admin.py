@@ -245,6 +245,9 @@ async def membership_update(ctx: CommandCtx, p: MembershipUpdate) -> dict:
     ).scalar_one_or_none()
     if m is None:
         raise NotFound()
+    # Optimistic check: scope_epoch is the membership's version (exposed by GET /v1/users).
+    if ctx.op.expected_version is not None and ctx.op.expected_version != m.scope_epoch:
+        raise Conflict("VERSION_CONFLICT", "This person's access changed since you loaded it. Refresh and review.")
     cm = (
         await tx.session.execute(
             select(CampMembership)

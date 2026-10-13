@@ -20,7 +20,8 @@ class Strict(BaseModel):
 
 class Precondition(Strict):
     entity: Literal[
-        "equipment", "allocation", "repair", "transfer", "transfer_line", "conflict", "form_version"
+        "equipment", "allocation", "repair", "transfer", "transfer_line", "conflict", "form_version",
+        "custody_claim",
     ]
     id: uuid.UUID
     expected_version: int | None = None

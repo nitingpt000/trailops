@@ -2,7 +2,9 @@
 import type { IsoDate, IsoInstant, Uuid } from './projections';
 
 export interface Precondition {
-  entity: 'equipment' | 'allocation' | 'repair' | 'transfer' | 'transfer_line' | 'conflict' | 'form_version';
+  entity:
+    | 'equipment' | 'allocation' | 'repair' | 'transfer' | 'transfer_line' | 'conflict' | 'form_version'
+    | 'custody_claim';
   id: Uuid;
   expected_version?: number;
   after_operation_id?: Uuid;

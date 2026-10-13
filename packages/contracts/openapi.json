@@ -2599,7 +2599,8 @@
        "transfer",
        "transfer_line",
        "conflict",
-       "form_version"
+       "form_version",
+       "custody_claim"
       ],
       "title": "Entity"
      },
